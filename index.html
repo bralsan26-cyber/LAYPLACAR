@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lay Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D1117;
+    --surface: #12181F;
+    --surface-2: #1A222C;
+    --border: #232C38;
+    --text: #E6EDF3;
+    --muted: #7D8590;
+    --lay: #F2789F;
+    --lay-dim: #5A3242;
+    --back: #4FA8E0;
+    --safe: #3FB68B;
+    --amber: #E3B341;
+    --danger: #E5534B;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    padding: 32px 24px 80px;
+  }
+  h1, h2, h3 { font-family: 'Space Grotesk', sans-serif; margin: 0; }
+  header {
+    max-width: 1080px;
+    margin: 0 auto 28px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 20px;
+  }
+  header h1 { font-size: 26px; letter-spacing: -0.02em; }
+  header h1 span { color: var(--lay); }
+  .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; }
+  .controls {
+    max-width: 1080px;
+    margin: 0 auto 28px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  input[type=date] {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 9px 12px;
+    border-radius: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+  }
+  button {
+    background: var(--lay);
+    color: #1A0510;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  button:disabled { background: var(--surface-2); color: var(--muted); cursor: wait; }
+  button.ghost {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .status {
+    max-width: 1080px;
+    margin: 0 auto 24px;
+    color: var(--muted);
+    font-size: 12px;
+    display: none;
+  }
+  .status.active { display: block; }
+  .progress-bar {
+    height: 3px;
+    background: var(--surface-2);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-top: 8px;
+  }
+  .progress-fill { height: 100%; background: var(--lay); transition: width .3s; }
+  main { max-width: 1080px; margin: 0 auto; }
+  section { margin-bottom: 40px; }
+  .section-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+  .section-head h2 { font-size: 15px; text-transform: uppercase; letter-spacing: 0.06em; }
+  .section-head .tag {
+    font-size: 10px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 12px; }
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    cursor: pointer;
+    transition: border-color .15s;
+  }
+  .card:hover { border-color: var(--lay); }
+  .card-top { display: flex; justify-content: space-between; align-items: flex-start; }
+  .teams { font-family: 'Space Grotesk', sans-serif; font-size: 15px; font-weight: 500; line-height: 1.4; }
+  .comp { color: var(--muted); font-size: 11px; margin-top: 2px; }
+  .score-badge {
+    font-size: 20px;
+    font-weight: 600;
+    text-align: right;
+    line-height: 1;
+  }
+  .score-badge .pct-label { display: block; font-size: 9px; color: var(--muted); font-weight: 400; margin-top: 3px; text-transform: uppercase; }
+  .safe-txt { color: var(--safe); }
+  .amber-txt { color: var(--amber); }
+  .danger-txt { color: var(--danger); }
+  .heatmap { display: flex; gap: 3px; margin-top: 12px; }
+  .dot { width: 9px; height: 9px; border-radius: 2px; flex: none; }
+  .dot.draw { background: var(--back); }
+  .dot.narrow { background: #37424F; }
+  .dot.margin2 { background: var(--amber); }
+  .dot.blowout { background: var(--danger); }
+  .details { display: none; margin-top: 14px; border-top: 1px dashed var(--border); padding-top: 12px; font-size: 11px; color: var(--muted); }
+  .details.open { display: block; }
+  .details table { width: 100%; border-collapse: collapse; }
+  .details td { padding: 3px 0; }
+  .details td.right { text-align: right; }
+  table.full {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+  table.full th {
+    text-align: left;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+  }
+  table.full td { padding: 10px; border-bottom: 1px solid var(--border); }
+  table.full tr:hover { background: var(--surface); }
+  .empty {
+    color: var(--muted);
+    font-size: 13px;
+    padding: 40px 0;
+    text-align: center;
+    border: 1px dashed var(--border);
+    border-radius: 10px;
+  }
+  .legend { display: flex; gap: 16px; font-size: 10px; color: var(--muted); margin-top: 6px; flex-wrap: wrap; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .disclaimer {
+    max-width: 1080px;
+    margin: 40px auto 0;
+    color: var(--muted);
+    font-size: 11px;
+    border-top: 1px solid var(--border);
+    padding-top: 16px;
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Lay <span>Scanner</span></h1>
+    <div class="subtitle">Histórico de mandante/visitante do dia, cruzado em dois scores: anti-zebra e anti-goleada</div>
+  </div>
+</header>
+
+<div class="controls">
+  <input type="date" id="dateInput">
+  <button id="fetchBtn">Buscar jogos do dia</button>
+  <button class="ghost" id="clearCacheBtn">Limpar cache local</button>
+</div>
+
+<div class="status" id="status">
+  <span id="statusText">—</span>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+</div>
+
+<main>
+  <section>
+    <div class="section-head">
+      <h2>Top candidatos — lay 2x0 zebra</h2>
+      <span class="tag">visitante raramente vence fora com margem</span>
+    </div>
+    <div class="cards" id="zebraCards"><div class="empty">Busque os jogos do dia para ver os candidatos</div></div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Top candidatos — lay goleada</h2>
+      <span class="tag">jogos historicamente sem diferença grande de placar</span>
+    </div>
+    <div class="cards" id="goleadaCards"><div class="empty">Busque os jogos do dia para ver os candidatos</div></div>
+  </section>
+
+  <section>
+    <div class="section-head"><h2>Todos os jogos do dia</h2></div>
+    <div id="fullTableWrap"></div>
+  </section>
+</main>
+
+<div class="disclaimer">
+  Os scores são calculados a partir do histórico recente (últimos 15 jogos, mando/visita) via football-data.org.
+  São uma referência estatística para apoiar sua decisão — não uma garantia de resultado. Sempre cheque odds e
+  liquidez na bolsa antes de entrar, e valide manualmente os jogos com amostra pequena de dados.
+</div>
+
+<script>
+const API = '/api/football';
+const COMPETITIONS = 'BSA,PL,PD,BL1,SA,FL1';
+const SAMPLE_SIZE = 15;
+const RATE_LIMIT_MS = 6200; // ~10 req/min do tier grátis, com folga
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+
+const dateInput = document.getElementById('dateInput');
+const fetchBtn = document.getElementById('fetchBtn');
+const clearCacheBtn = document.getElementById('clearCacheBtn');
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('statusText');
+const progressFill = document.getElementById('progressFill');
+const zebraCards = document.getElementById('zebraCards');
+const goleadaCards = document.getElementById('goleadaCards');
+const fullTableWrap = document.getElementById('fullTableWrap');
+
+dateInput.value = new Date().toISOString().slice(0, 10);
+
+clearCacheBtn.onclick = () => {
+  Object.keys(localStorage).filter(k => k.startsWith('layscanner:')).forEach(k => localStorage.removeItem(k));
+  statusText.textContent = 'Cache local limpo.';
+  statusEl.classList.add('active');
+};
+
+fetchBtn.onclick = () => runScan(dateInput.value);
+
+function cacheGet(key) {
+  try {
+    const raw = localStorage.getItem('layscanner:' + key);
+    if (!raw) return null;
+    const { ts, data } = JSON.parse(raw);
+    if (Date.now() - ts > CACHE_TTL_MS) return null;
+    return data;
+  } catch { return null; }
+}
+function cacheSet(key, data) {
+  try { localStorage.setItem('layscanner:' + key, JSON.stringify({ ts: Date.now(), data })); } catch {}
+}
+
+// Fila simples que respeita o rate limit do tier grátis
+let queue = Promise.resolve();
+function queued(fn) {
+  const run = () => new Promise(resolve => {
+    fn().finally(resolve);
+  }).then(r => r);
+  const result = queue.then(() => fn());
+  queue = result.catch(() => {}).then(() => new Promise(r => setTimeout(r, RATE_LIMIT_MS)));
+  return result;
+}
+
+async function apiFetch(params) {
+  const url = API + '?' + new URLSearchParams(params).toString();
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || 'Erro na API');
+  return data;
+}
+
+function classifyDiff(diff) {
+  if (diff === 0) return 'draw';
+  if (diff === 1) return 'narrow';
+  if (diff === 2) return 'margin2';
+  return 'blowout';
+}
+
+function statsFromMatches(matches, teamId) {
+  const rows = matches
+    .filter(m => m.score && m.score.fullTime && m.score.fullTime.home != null)
+    .map(m => {
+      const isHome = m.homeTeam.id === teamId;
+      const gf = isHome ? m.score.fullTime.home : m.score.fullTime.away;
+      const ga = isHome ? m.score.fullTime.away : m.score.fullTime.home;
+      const diff = Math.abs(gf - ga);
+      const wonByMargin2Plus = gf - ga >= 2;
+      return { date: m.utcDate, opponent: isHome ? m.awayTeam.name : m.homeTeam.name, gf, ga, diff, wonByMargin2Plus, category: classifyDiff(diff) };
+    })
+    .slice(0, SAMPLE_SIZE);
+
+  const n = rows.length;
+  const blowoutRate = n ? rows.filter(r => r.diff >= 3).length / n : null;
+  const winMargin2PlusRate = n ? rows.filter(r => r.wonByMargin2Plus).length / n : null;
+
+  return { rows, n, blowoutRate, winMargin2PlusRate };
+}
+
+function pct(x) { return x == null ? '—' : Math.round(x * 100) + '%'; }
+function riskClass(riskFraction) {
+  if (riskFraction == null) return '';
+  if (riskFraction < 0.15) return 'safe-txt';
+  if (riskFraction < 0.30) return 'amber-txt';
+  return 'danger-txt';
+}
+
+async function runScan(date) {
+  fetchBtn.disabled = true;
+  statusEl.classList.add('active');
+  zebraCards.innerHTML = '';
+  goleadaCards.innerHTML = '';
+  fullTableWrap.innerHTML = '';
+  statusText.textContent = 'Buscando jogos do dia...';
+  progressFill.style.width = '5%';
+
+  let fixturesResp;
+  try {
+    fixturesResp = await apiFetch({ type: 'fixtures', date, comp: COMPETITIONS });
+  } catch (e) {
+    statusText.textContent = 'Erro ao buscar jogos: ' + e.message;
+    fetchBtn.disabled = false;
+    return;
+  }
+
+  const matches = (fixturesResp.matches || []).filter(m => ['SCHEDULED', 'TIMED'].includes(m.status));
+  if (!matches.length) {
+    fullTableWrap.innerHTML = '<div class="empty">Nenhum jogo agendado nessas ligas para essa data.</div>';
+    statusText.textContent = 'Nenhum jogo encontrado.';
+    fetchBtn.disabled = false;
+    return;
+  }
+
+  const teamIdsNeeded = new Set();
+  matches.forEach(m => { teamIdsNeeded.add(m.homeTeam.id + ':HOME'); teamIdsNeeded.add(m.awayTeam.id + ':AWAY'); });
+  const totalCalls = teamIdsNeeded.size;
+  let done = 0;
+
+  const teamCache = {};
+  async function getTeamStats(teamId, venue) {
+    const key = teamId + ':' + venue;
+    const cached = cacheGet(key);
+    if (cached) { done++; updateProgress(done, totalCalls); return cached; }
+    const data = await queued(() => apiFetch({ type: 'team', teamId, venue, limit: SAMPLE_SIZE }));
+    const stats = statsFromMatches(data.matches || [], teamId);
+    cacheSet(key, stats);
+    done++;
+    updateProgress(done, totalCalls);
+    return stats;
+  }
+
+  function updateProgress(done, total) {
+    const p = Math.round((done / total) * 100);
+    progressFill.style.width = p + '%';
+    statusText.textContent = `Coletando histórico dos times... (${done}/${total})`;
+  }
+
+  const results = [];
+  for (const m of matches) {
+    try {
+      const [homeStats, awayStats] = await Promise.all([
+        getTeamStats(m.homeTeam.id, 'HOME'),
+        getTeamStats(m.awayTeam.id, 'AWAY'),
+      ]);
+      if (homeStats.n < 5 || awayStats.n < 5) continue; // amostra insuficiente
+
+      const zebraRisk = awayStats.winMargin2PlusRate;
+      const blowoutRisk = (homeStats.blowoutRate + awayStats.blowoutRate) / 2;
+
+      results.push({
+        match: m,
+        homeStats, awayStats,
+        antiZebraScore: 1 - zebraRisk,
+        antiGoleadaScore: 1 - blowoutRisk,
+        zebraRisk, blowoutRisk,
+      });
+    } catch (e) {
+      console.warn('Falhou para', m.homeTeam.name, 'x', m.awayTeam.name, e.message);
+    }
+  }
+
+  statusText.textContent = `Pronto. ${results.length} jogos com dados suficientes de ${matches.length} agendados.`;
+  progressFill.style.width = '100%';
+  fetchBtn.disabled = false;
+
+  renderTopCards(results);
+  renderFullTable(results);
+}
+
+function matchLabel(m) {
+  return `${m.homeTeam.name} <span style="color:var(--muted)">x</span> ${m.awayTeam.name}`;
+}
+
+function renderCard(r, scoreKey, riskKey) {
+  const m = r.match;
+  const score = r[scoreKey];
+  const risk = r[riskKey];
+  const cls = riskClass(risk);
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.innerHTML = `
+    <div class="card-top">
+      <div>
+        <div class="teams">${matchLabel(m)}</div>
+        <div class="comp">${m.competition.name} · ${new Date(m.utcDate).toLocaleString('pt-BR', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' })}</div>
+      </div>
+      <div class="score-badge ${cls}">${pct(score)}<span class="pct-label">segurança</span></div>
+    </div>
+    <div class="heatmap">${heatmapDots(r.homeStats.rows)}</div>
+    <div class="heatmap" style="margin-top:4px">${heatmapDots(r.awayStats.rows)}</div>
+    <div class="details">
+      <table>
+        <tr><td>Mandante em casa (${r.homeStats.n} jogos)</td><td class="right">goleada ${pct(r.homeStats.blowoutRate)}</td></tr>
+        <tr><td>Visitante fora (${r.awayStats.n} jogos)</td><td class="right">venceu por 2+ ${pct(r.awayStats.winMargin2PlusRate)} · goleada ${pct(r.awayStats.blowoutRate)}</td></tr>
+      </table>
+    </div>
+  `;
+  div.onclick = () => div.querySelector('.details').classList.toggle('open');
+  return div;
+}
+
+function heatmapDots(rows) {
+  return rows.map(r => `<div class="dot ${r.category}" title="${r.opponent}: ${r.gf}-${r.ga}"></div>`).join('');
+}
+
+function renderTopCards(results) {
+  const byZebra = [...results].sort((a, b) => b.antiZebraScore - a.antiZebraScore).slice(0, 3);
+  const byGoleada = [...results].sort((a, b) => b.antiGoleadaScore - a.antiGoleadaScore).slice(0, 3);
+
+  zebraCards.innerHTML = '';
+  byZebra.forEach(r => zebraCards.appendChild(renderCard(r, 'antiZebraScore', 'zebraRisk')));
+  if (!byZebra.length) zebraCards.innerHTML = '<div class="empty">Sem jogos com amostra suficiente</div>';
+
+  goleadaCards.innerHTML = '';
+  byGoleada.forEach(r => goleadaCards.appendChild(renderCard(r, 'antiGoleadaScore', 'blowoutRisk')));
+  if (!byGoleada.length) goleadaCards.innerHTML = '<div class="empty">Sem jogos com amostra suficiente</div>';
+}
+
+function renderFullTable(results) {
+  if (!results.length) { fullTableWrap.innerHTML = '<div class="empty">Nenhum jogo com amostra suficiente hoje.</div>'; return; }
+  const sorted = [...results].sort((a, b) => (b.antiZebraScore + b.antiGoleadaScore) - (a.antiZebraScore + a.antiGoleadaScore));
+  const rowsHtml = sorted.map(r => `
+    <tr>
+      <td>${matchLabel(r.match)}<div class="comp">${r.match.competition.name}</div></td>
+      <td class="${riskClass(r.zebraRisk)}">${pct(r.antiZebraScore)}</td>
+      <td class="${riskClass(r.blowoutRisk)}">${pct(r.antiGoleadaScore)}</td>
+    </tr>
+  `).join('');
+  fullTableWrap.innerHTML = `
+    <table class="full">
+      <thead><tr><th>Jogo</th><th>Anti-zebra</th><th>Anti-goleada</th></tr></thead>
+      <tbody>${rowsHtml}</tbody>
+    </table>
+    <div class="legend">
+      <span><div class="dot draw"></div> empate</span>
+      <span><div class="dot narrow"></div> margem 1</span>
+      <span><div class="dot margin2"></div> margem 2</span>
+      <span><div class="dot blowout"></div> goleada (3+)</span>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
